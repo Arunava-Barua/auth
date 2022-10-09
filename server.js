@@ -3,17 +3,20 @@ const path = require("path");
 const https = require("https");
 const fs = require("fs");
 const helmet = require("helmet");
+const cookieSession = require("cookie-session");
 const passport = require("passport");
 const { Strategy } = require("passport-google-oauth20");
-const { log } = require("console");
 
 require("dotenv").config();
 
 const PORT = 3000;
+const app = express();
 
 const config = {
   CLIENT_ID: process.env.CLIENT_ID,
   CLIENT_SECRET: process.env.CLIENT_SECRET,
+  COOKIE_KEY_1: process.env.COOKIE_KEY_1,
+  COOKIE_KEY_2: process.env.COOKIE_KEY_2,
 };
 
 const AUTH_OPTIONS = {
@@ -29,12 +32,32 @@ function verifyCallback(accessToken, refreshToken, profile, done) {
 
 passport.use(new Strategy(AUTH_OPTIONS, verifyCallback));
 
-const app = express();
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser((id, done) => {
+  done(null, id);
+});
+
 
 app.use(helmet());
+
+
+// Maintain sequence of middlewares
+app.use(
+  cookieSession({
+    name: "session",
+    maxAge: 24 * 60 * 60 * 1000,
+    keys: [config.COOKIE_KEY_1, config.COOKIE_KEY_2],
+  })
+);
+
 app.use(passport.initialize());
+app.use(passport.session());
 
 function checkLoggedIn(req, res, next) {
+  // req.user
   const isLoggedIn = true;
 
   if (isLoggedIn) {
@@ -46,20 +69,25 @@ function checkLoggedIn(req, res, next) {
   next();
 }
 
+// Authentication GET methods go here -------------------------------------------
+
 app.get("/auth/google", passport.authenticate("google", { scope: ["email"] }));
 
 app.get(
   "/auth/google/callback",
   passport.authenticate("google", {
     failureRedirect: "/failure",
-    sucessRedirect: "/",
-    session: false,
+    successRedirect: "/",
+    session: true,
   }),
   (req, res) => {
     console.log("Google called us");
   }
 );
 
+// -----------------------------------------------------------------------------
+
+// GET requests here
 app.get("/auth/logout", (req, res) => {});
 
 app.get("/secret", checkLoggedIn, (req, res) => {

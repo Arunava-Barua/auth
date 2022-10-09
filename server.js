@@ -56,11 +56,15 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+
+// Show hidden data with authentication
+
 function checkLoggedIn(req, res, next) {
   // req.user
-  const isLoggedIn = true;
+  console.log('Current user is:' + req.user);
+  const isLoggedIn = req.isAuthenticated() && req.user;
 
-  if (isLoggedIn) {
+  if (!isLoggedIn) {
     return res.status(401).json({
       error: "Please log in",
     });

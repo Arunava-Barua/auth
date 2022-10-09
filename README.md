@@ -8,3 +8,4 @@ This is a repo for authentication methodologies in node js.
 5. OAuth standard
 6. Passport.js for google authentication
 7. Sessions
+8. Cookies
